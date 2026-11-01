@@ -119,7 +119,7 @@ function resolveRock(r){
 let p=players.find(q=>q.id===r.targetId);if(!p||!p.alive)return;
 let gx=Math.max(0,Math.min(p.w-1,Math.floor((r.x-p.x)/cell))),gy=Math.max(0,Math.min(p.h-1,Math.floor((r.landY-p.y)/cell)));
 let m=p.grid[gy][gx];particles.push({x:r.x,y:r.landY,r:28,life:24});
-if(m){let durability={wood:1,glass:1,stone:3,metal:5}[m]||2;durability-=mode==='bombard'?1:0;if(durability<=2){p.grid[gy][gx]=null;log('¡Impacto! Una piedra rompió un bloque de '+p.name+'.')}else{p.hp-=12;log('La piedra golpeó la defensa de '+p.name+'.')}}
+if(m){if(m==='trap'){p.hp-=30;p.grid[gy][gx]=null;log('¡La trampa explotó y dañó al atacante de '+p.name+'!')}else{let durability={wood:1,glass:1,window:1,stone:3,reinforced:7,metal:5}[m]||2;durability-=mode==='bombard'?1:0;if(durability<=2){p.grid[gy][gx]=null;log('¡Impacto! Una piedra rompió un bloque de '+p.name+'.')}else{p.hp-=mode==='extreme'?24:mode==='hard'?18:12;log('La piedra golpeó la defensa de '+p.name+'.')}}}
 else{p.hp-=25;p.dx+=(Math.random()-.5)*22;p.dy-=12;p.px+=p.dx;p.py+=p.dy;log('¡Impacto directo sobre '+p.name+'!')}
 for(let i=0;i<9;i++)particles.push({x:r.x+(Math.random()-.5)*32,y:r.landY+(Math.random()-.5)*24,r:4+Math.random()*7,life:18});
 if(p.hp<=0||p.px<p.x-15||p.px>p.x+p.w*cell+15||p.py<p.y-15||p.py>p.y+p.h*cell+15){p.alive=false;log(p.name+' quedó eliminado.')}
@@ -172,7 +172,20 @@ function updateEvent(){let events=['Lluvia intensa','Niebla','Tormenta eléctric
 function oldModeSetup(){roundLimit=mode==='challenge'?3:mode==='endless'?999:mode==='sandbox'?999:5;if(mode==='training'){roundLimit=999;}}
 const oldReset=reset;reset=function(){oldReset();roundLimit=mode==='challenge'?3:(mode==='endless'||mode==='sandbox'||mode==='training'?999:5);if(mode==='sandbox'){phase='build';players.slice(1).forEach(p=>p.alive=false);log('Sandbox: construí libremente, sin ataques de bots.')}if(mode==='training'){players.slice(1).forEach(p=>p.alive=false);log('Entrenamiento: practicá sin rivales.')}refreshProgress();draw();};
 const oldDoAttack=doAttack;doAttack=function(){if(mode==='sandbox'||mode==='training'){log('Este modo no tiene ataques: usá Reiniciar diseño para seguir construyendo.');return;}updateEvent();oldDoAttack();};
-const oldFinishRound=finishRound;finishRound=function(){if(generatorOn){coins+=10;log('El generador produjo 10 monedas.');}gainXP(25+round*5);if(mode==='endless'||mode==='training'||mode==='sandbox')roundLimit=999;else if(mode==='challenge')roundLimit=3;else roundLimit=5;if(round>=roundLimit&&mode==='endless'){phase='done';document.getElementById('resultTitle').textContent='¡RÉCORD DE SUPERVIVENCIA!';document.getElementById('resultText').textContent='Llegaste a la ronda '+round+'.';document.getElementById('result').classList.remove('hidden');clearInterval(roundClock);update();return;}oldFinishRound();};
+finishRound=function(){
+clearInterval(roundClock);roundClock=null;fallingRocks=[];let survived=players[0].alive;
+coins+=survived?20+round*10:5;if(generatorOn){coins+=10;log('El generador produjo 10 monedas.');}
+gainXP(25+round*5);
+let alive=players.filter(p=>p.alive).length;
+let limit=mode==='challenge'?3:mode==='endless'||mode==='training'||mode==='sandbox'?999:5;
+if(alive<=1||round>=limit){
+phase='done';let win=players.find(p=>p.alive);
+document.getElementById('resultTitle').textContent=win&&win.id===0?'¡VICTORIA!':'FIN DE LA PARTIDA';
+document.getElementById('resultText').textContent=win?(win.id===0?'Tu base resistió. ¡Sos el último en pie!':win.name+' fue el último en pie. ¡Probá otra estrategia!'):'Todas las bases fueron destruidas.';
+document.getElementById('result').classList.remove('hidden');
+}else{phase='done';log('Ronda terminada. Sobreviviste 60 segundos.');}
+update();draw();
+};
 const oldDraw=draw;draw=function(){oldDraw();if(currentEvent==='Niebla'){ctx.fillStyle='#b9d5e522';ctx.fillRect(0,0,W,H);}if(currentEvent==='Lluvia intensa'){ctx.strokeStyle='#b8dfff55';ctx.lineWidth=2;for(let i=0;i<70;i++){let x=(i*157+Date.now()*.08)%W,y=(i*91+Date.now()*.24)%H;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-7,y+18);ctx.stroke();}}if(currentEvent==='Tormenta eléctrica'&&phase==='attack'){ctx.fillStyle='#c9eaff0b';ctx.fillRect(0,0,W,H);}ctx.fillStyle='#ffcf79';ctx.font='bold 13px system-ui';ctx.textAlign='right';ctx.fillText('EVENTO: '+currentEvent.toUpperCase(),W-14,20);};
 document.querySelectorAll('[data-mat]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-mat]').forEach(x=>x.classList.toggle('active',x===b));}));
 document.getElementById('upgradeMaterials').onclick=()=>{if(phase!=='build')return;if(materialsUpgraded){log('Tus materiales ya están mejorados.');return;}if(coins<40){log('Necesitás 40 monedas.');return;}coins-=40;materialsUpgraded=true;colors.stone='#a8c2d5';players[0].grid=players[0].grid.map(row=>row.map(m=>m==='stone'?'reinforced':m));saveProgress();refreshProgress();update();draw();log('¡Materiales mejorados! Tus piedras ahora son paredes reforzadas.');};
