@@ -15,13 +15,13 @@ select{width:100%;padding:10px;background:#0b1426;border:1px solid #344866;borde
 .controls{display:grid;grid-template-columns:1fr 1fr;gap:8px}.controls button{font-size:13px}.wide{width:100%;margin-top:9px}
 .materials{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.mat{padding:9px;text-align:left;font-size:12px}.mat b{display:block;font-size:14px}
 .help{color:#93a6c4;font-size:12px;line-height:1.55;margin-top:14px}.arena{padding:12px}.arenaTop{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:4px 4px 12px}.arenaTop b{font-size:14px}.pill{background:#0a1426;border:1px solid #344866;padding:6px 10px;border-radius:30px;font-size:11px;color:#a9bedb}
-canvas{width:100%;height:auto;display:block;border-radius:12px;background:#101d31;border:1px solid #334767;touch-action:manipulation}
+canvas{width:100%;height:auto;aspect-ratio:16/9;display:block;border-radius:12px;background:#101d31;border:1px solid #334767;touch-action:manipulation}
 .log{height:90px;overflow:auto;margin-top:10px;background:#0a1324;border:1px solid #263653;border-radius:10px;padding:9px;font-size:12px;color:#9db1d0}.log p{margin:2px 0}
 .bottom{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}.hint{font-size:12px;color:#91a6c7}
 .overlay{position:fixed;inset:0;background:#050914d9;display:grid;place-items:center;z-index:10;padding:18px}.modal{width:min(500px,100%);background:#17243b;border:1px solid #405675;border-radius:20px;padding:26px;text-align:center;box-shadow:0 20px 80px #0009}.modal h1{font-size:34px;margin:0;color:white;letter-spacing:2px}.modal p{color:#a9bddb;line-height:1.5}.modal .modes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0}.modes button{font-size:12px;padding:12px 6px}.hidden{display:none!important}.stat b.gold{color:var(--gold)}.upgrade{font-size:12px;color:#9eb4d4;line-height:1.5}.mapPreview{border:1px solid #304563;border-radius:10px;padding:9px;background:#0b1426;color:#a9bedb;font-size:12px}.toast{color:var(--gold);font-weight:700}
 @media(max-width:780px){.layout{grid-template-columns:1fr}.panel.side{order:2}.arena{order:1}header{position:static}.stats{grid-template-columns:repeat(3,1fr)}main{margin:12px auto}.modal h1{font-size:28px}}
 
-/* VISUAL UPGRADE 0.3 */
+/* FULL HD VISUAL UPGRADE 0.4 */
 body{background:radial-gradient(ellipse at 50% -10%,#28466b 0%,#101a30 42%,#070b14 100%)}
 header{backdrop-filter:blur(14px);box-shadow:0 8px 30px #0005}
 .logo{font-size:23px;text-shadow:0 0 22px #52e0d055}
@@ -36,7 +36,7 @@ canvas{border-color:#49678c;box-shadow:0 12px 35px #0007,inset 0 0 30px #0005}
 @media(max-width:780px){.logo{font-size:20px}.panel{border-radius:14px}.arena{padding:9px}}
 </style></head>
 <body>
-<header><div><div class="logo">BASE <span>SURVIVOR</span></div><div class="tag">CONSTRUÍ · RESISTÍ · SOBREVIVÍ</div></div><div class="pill">VISUAL UPDATE 0.3</div></header>
+<header><div><div class="logo">BASE <span>SURVIVOR</span></div><div class="tag">CONSTRUÍ · RESISTÍ · SOBREVIVÍ</div></div><div class="pill">FULL HD VISUALS 0.4</div></header>
 <main><div class="stats"><div class="stat"><small>Ronda</small><b id="round">1/5</b></div><div class="stat"><small>Jugadores</small><b id="alive">4</b></div><div class="stat"><small>Bloques</small><b id="blocks">12</b></div><div class="stat"><small>Monedas</small><b class="gold" id="coins">0</b></div></div>
 <div class="layout"><section class="panel side"><h2>Tu construcción</h2><p class="hint">Elegí un material y tocá una casilla vacía de tu base para colocar un bloque.</p><div class="materials">
 <button class="mat active" data-mat="stone">🪨 <b>Piedra</b>Resistente</button><button class="mat" data-mat="wood">🪵 <b>Madera</b>Se rompe fácil</button><button class="mat" data-mat="metal">🛡️ <b>Metal</b>Muy resistente</button><button class="mat" data-mat="glass">🔷 <b>Cristal</b>Frágil</button></div>
@@ -45,12 +45,12 @@ canvas{border-color:#49678c;box-shadow:0 12px 35px #0007,inset 0 0 30px #0005}
 <button class="primary wide" id="attack">INICIAR ATAQUE DE RONDA</button><button class="wide" id="next" disabled>Siguiente ronda →</button>
 <div class="upgrade" style="margin-top:12px"><b>MEJORAS DE ESTA VERSIÓN</b><br>• Tres escenarios con ambientación propia.<br>• Bots que refuerzan sus defensas entre rondas.<br>• Monedas por sobrevivir y ganar.<br>• Efectos de impacto y mejor lectura de la partida.</div><div class="help"><b>Cómo jugar</b><br>• Construí alrededor de tu personaje.<br>• Cada ronda llegan proyectiles.<br>• Si tu base cae o tu personaje sale despedido, quedás eliminado.<br>• Sobreviví las 5 rondas y vencé a los rivales.<br><br><b>Nota:</b> esta es una primera versión de prueba contra bots. El multijugador online y las salas privadas todavía no están conectados.</div>
 </section>
-<section class="panel arena"><div class="arenaTop"><b>CAMPO DE SUPERVIVENCIA</b><span class="pill" id="status">FASE DE CONSTRUCCIÓN</span></div><canvas id="game" width="900" height="540" aria-label="Campo de juego"></canvas><div class="bottom"><span class="hint" id="message">Prepará tu base antes del ataque.</span><span class="pill">CLICK / TOQUE PARA CONSTRUIR</span></div><div class="log" id="log"><p>• Bienvenido a BASE SURVIVOR.</p><p>• Los bots están preparando sus bases.</p></div></section></div></main>
+<section class="panel arena"><div class="arenaTop"><b>CAMPO DE SUPERVIVENCIA</b><span class="pill" id="status">FASE DE CONSTRUCCIÓN</span></div><canvas id="game" width="1920" height="1080" aria-label="Campo de juego"></canvas><div class="bottom"><span class="hint" id="message">Prepará tu base antes del ataque.</span><span class="pill">CLICK / TOQUE PARA CONSTRUIR</span></div><div class="log" id="log"><p>• Bienvenido a BASE SURVIVOR.</p><p>• Los bots están preparando sus bases.</p></div></section></div></main>
 <div class="overlay" id="intro"><div class="modal"><div class="tag">EL ÚLTIMO EN PIE GANA</div><h1>BASE <span style="color:var(--cyan)">SURVIVOR</span></h1><p>Construí una base de bloques, protegé a tu personaje y resistí cinco rondas de ataques.</p><div class="modes"><button class="active" data-start="classic">CLÁSICO</button><button data-start="invasive">INVASIVO</button><button data-start="bombard">BOMBARD.</button></div><button class="primary wide" id="play">JUGAR</button></div></div>
 <div class="overlay hidden" id="result"><div class="modal"><div class="tag">RESULTADO DE LA PARTIDA</div><h1 id="resultTitle">¡VICTORIA!</h1><p id="resultText"></p><button class="primary wide" id="again">VOLVER A JUGAR</button></div></div>
 <script>
-const cv=document.getElementById('game'),ctx=cv.getContext('2d');
-const W=900,H=540,cell=28,baseW=7,baseH=5,colors={stone:'#8292a8',wood:'#b77b45',metal:'#8aa7b9',glass:'#65cbd1'};
+const cv=document.getElementById('game'),ctx=cv.getContext('2d');ctx.scale(2,2);
+const W=960,H=540,cell=28,baseW=7,baseH=5,colors={stone:'#8292a8',wood:'#b77b45',metal:'#8aa7b9',glass:'#65cbd1'};
 let mode='classic',selected='stone',round=1,phase='build',players=[],blocksLeft=12,shots=[],logs=[],selectedStart='classic',coins=0,mapTheme='valley',particles=[];
 const names=['VOS','BOT ROJO','BOT AZUL','BOT VERDE'];
 const positions=[{x:110,y:330},{x:545,y:70},{x:545,y:330},{x:110,y:70}];
@@ -66,6 +66,10 @@ let pal=palettes[mapTheme]||palettes.valley;
 let bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,pal[0]);bg.addColorStop(.55,pal[1]);bg.addColorStop(1,'#091321');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
 let glow=ctx.createRadialGradient(W/2,H/2,30,W/2,H/2,510);glow.addColorStop(0,pal[2]+'55');glow.addColorStop(1,'#02071100');ctx.fillStyle=glow;ctx.fillRect(0,0,W,H);
 for(let i=0;i<75;i++){let x=(i*137)%W,y=(i*83)%H;ctx.fillStyle=mapTheme==='lava'?'#ffb06a18':mapTheme==='ice'?'#c8efff20':'#a5f5c018';ctx.beginPath();ctx.arc(x,y,((i%4)+1)*1.2,0,Math.PI*2);ctx.fill()}
+
+// Terreno con relieve, caminos y puntos de luz
+for(let i=0;i<16;i++){let x=(i*197+53)%W,y=(i*113+37)%H;ctx.save();ctx.globalAlpha=.18;ctx.fillStyle=mapTheme==='lava'?'#ff9b55':mapTheme==='ice'?'#bcecff':'#9bd8a4';ctx.beginPath();ctx.ellipse(x,y,18+(i%4)*8,7+(i%3)*5,(i%5)*.35,0,Math.PI*2);ctx.fill();ctx.restore()}
+ctx.save();ctx.globalAlpha=.22;ctx.strokeStyle=mapTheme==='lava'?'#ff8d55':mapTheme==='ice'?'#9ce4ff':'#8bd5a8';ctx.lineWidth=7;ctx.setLineDash([18,22]);ctx.beginPath();ctx.moveTo(0,270);ctx.bezierCurveTo(230,190,360,360,520,250);ctx.bezierCurveTo(700,160,810,300,W,210);ctx.stroke();ctx.restore();
 ctx.strokeStyle='#c8e7ff12';ctx.lineWidth=1;for(let x=0;x<W;x+=30){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<H;y+=30){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
 players.forEach(p=>{
 if(!p.alive)return;
