@@ -34,6 +34,9 @@ canvas{border-color:#49678c;box-shadow:0 12px 35px #0007,inset 0 0 30px #0005}
 .pill{box-shadow:inset 0 1px #ffffff0b}
 .modal{background:radial-gradient(circle at 50% 0,#29466b,#142139 65%);border-color:#5a789f;box-shadow:0 24px 90px #000b,inset 0 1px #ffffff18}
 @media(max-width:780px){.logo{font-size:20px}.panel{border-radius:14px}.arena{padding:9px}}
+
+/* PHYSICS & MATERIALS UPDATE 0.5 */
+.timerReadout{font-variant-numeric:tabular-nums;color:#ffcf79;font-weight:900;letter-spacing:1px}
 </style></head>
 <body>
 <header><div><div class="logo">BASE <span>SURVIVOR</span></div><div class="tag">CONSTRUÍ · RESISTÍ · SOBREVIVÍ</div></div><div class="pill">FULL HD VISUALS 0.4</div></header>
@@ -45,20 +48,20 @@ canvas{border-color:#49678c;box-shadow:0 12px 35px #0007,inset 0 0 30px #0005}
 <button class="primary wide" id="attack">INICIAR ATAQUE DE RONDA</button><button class="wide" id="next" disabled>Siguiente ronda →</button>
 <div class="upgrade" style="margin-top:12px"><b>MEJORAS DE ESTA VERSIÓN</b><br>• Tres escenarios con ambientación propia.<br>• Bots que refuerzan sus defensas entre rondas.<br>• Monedas por sobrevivir y ganar.<br>• Efectos de impacto y mejor lectura de la partida.</div><div class="help"><b>Cómo jugar</b><br>• Construí alrededor de tu personaje.<br>• Cada ronda llegan proyectiles.<br>• Si tu base cae o tu personaje sale despedido, quedás eliminado.<br>• Sobreviví las 5 rondas y vencé a los rivales.<br><br><b>Nota:</b> esta es una primera versión de prueba contra bots. El multijugador online y las salas privadas todavía no están conectados.</div>
 </section>
-<section class="panel arena"><div class="arenaTop"><b>CAMPO DE SUPERVIVENCIA</b><span class="pill" id="status">FASE DE CONSTRUCCIÓN</span></div><canvas id="game" width="1920" height="1080" aria-label="Campo de juego"></canvas><div class="bottom"><span class="hint" id="message">Prepará tu base antes del ataque.</span><span class="pill">CLICK / TOQUE PARA CONSTRUIR</span></div><div class="log" id="log"><p>• Bienvenido a BASE SURVIVOR.</p><p>• Los bots están preparando sus bases.</p></div></section></div></main>
+<section class="panel arena"><div class="arenaTop"><b>CAMPO DE SUPERVIVENCIA</b><span class="pill" id="status">FASE DE CONSTRUCCIÓN</span><span class="pill timerReadout" id="timer">01:00</span></div><canvas id="game" width="1920" height="1080" aria-label="Campo de juego"></canvas><div class="bottom"><span class="hint" id="message">Prepará tu base antes del ataque.</span><span class="pill">CLICK / TOQUE PARA CONSTRUIR</span></div><div class="log" id="log"><p>• Bienvenido a BASE SURVIVOR.</p><p>• Los bots están preparando sus bases.</p></div></section></div></main>
 <div class="overlay" id="intro"><div class="modal"><div class="tag">EL ÚLTIMO EN PIE GANA</div><h1>BASE <span style="color:var(--cyan)">SURVIVOR</span></h1><p>Construí una base de bloques, protegé a tu personaje y resistí cinco rondas de ataques.</p><div class="modes"><button class="active" data-start="classic">CLÁSICO</button><button data-start="invasive">INVASIVO</button><button data-start="bombard">BOMBARD.</button></div><button class="primary wide" id="play">JUGAR</button></div></div>
 <div class="overlay hidden" id="result"><div class="modal"><div class="tag">RESULTADO DE LA PARTIDA</div><h1 id="resultTitle">¡VICTORIA!</h1><p id="resultText"></p><button class="primary wide" id="again">VOLVER A JUGAR</button></div></div>
 <script>
 const cv=document.getElementById('game'),ctx=cv.getContext('2d');ctx.scale(2,2);
 const W=960,H=540,cell=28,baseW=7,baseH=5,colors={stone:'#8292a8',wood:'#b77b45',metal:'#8aa7b9',glass:'#65cbd1'};
-let mode='classic',selected='stone',round=1,phase='build',players=[],blocksLeft=12,shots=[],logs=[],selectedStart='classic',coins=0,mapTheme='valley',particles=[];
+let mode='classic',selected='stone',round=1,phase='build',players=[],blocksLeft=12,shots=[],logs=[],selectedStart='classic',coins=0,mapTheme='valley',particles=[],fallingRocks=[],roundSeconds=60,roundClock=null,roundStart=0,rocksDropped=0,animFrame=null,lastFrame=0;
 const names=['VOS','BOT ROJO','BOT AZUL','BOT VERDE'];
 const positions=[{x:110,y:330},{x:545,y:70},{x:545,y:330},{x:110,y:70}];
 function makePlayer(i){let p={id:i,name:names[i],x:positions[i].x,y:positions[i].y,w:baseW,h:baseH,grid:Array.from({length:baseH},()=>Array(baseW).fill(null)),alive:true,hp:100,px:positions[i].x+baseW*cell/2,py:positions[i].y+baseH*cell/2,dx:0,dy:0};for(let y=0;y<baseH;y++)for(let x=0;x<baseW;x++)if(x===0||y===0||x===baseW-1||y===baseH-1)p.grid[y][x]='stone';p.grid[2][3]=null;return p}
 function botPrepare(p){if(!p||!p.alive)return;for(let n=0;n<3;n++){let candidates=[];for(let y=1;y<p.h-1;y++)for(let x=1;x<p.w-1;x++)if(!p.grid[y][x]&&!(x===3&&y===2))candidates.push([x,y]);if(candidates.length){let [x,y]=candidates[Math.floor(Math.random()*candidates.length)];p.grid[y][x]=p.id===1?'metal':(Math.random()>.35?'stone':'wood')}}p.hp=Math.min(100,p.hp+8)}
-function reset(){round=1;phase='build';blocksLeft=12;shots=[];particles=[];players=positions.map((_,i)=>makePlayer(i));players.slice(1).forEach(p=>{for(let n=0;n<5;n++){let x=1+Math.floor(Math.random()*5),y=1+Math.floor(Math.random()*3);p.grid[y][x]=Math.random()>.5?'wood':'stone'}botPrepare(p)});logs=[];log('¡Partida iniciada! Los rivales preparan defensas.');update();draw()}
+function reset(){round=1;phase='build';blocksLeft=12;shots=[];particles=[];fallingRocks=[];clearInterval(roundClock);roundSeconds=60;rocksDropped=0;players=positions.map((_,i)=>makePlayer(i));players.slice(1).forEach(p=>{for(let n=0;n<5;n++){let x=1+Math.floor(Math.random()*5),y=1+Math.floor(Math.random()*3);p.grid[y][x]=Math.random()>.5?'wood':'stone'}botPrepare(p)});logs=[];log('¡Partida iniciada! Los rivales preparan defensas.');update();draw()}
 function log(s){logs.unshift('• '+s);document.getElementById('log').innerHTML=logs.slice(0,7).map(x=>'<p>'+x+'</p>').join('')}
-function update(){document.getElementById('round').textContent=round+'/5';document.getElementById('alive').textContent=players.filter(p=>p.alive).length;document.getElementById('blocks').textContent=blocksLeft;document.getElementById('coins').textContent=coins;document.getElementById('status').textContent=phase==='build'?'FASE DE CONSTRUCCIÓN':phase==='attack'?'¡ATAQUE EN CURSO!':'RONDA COMPLETADA';document.getElementById('attack').disabled=phase!=='build'||!players[0].alive;document.getElementById('next').disabled=phase!=='done';}
+function update(){document.getElementById('round').textContent=round+'/5';document.getElementById('alive').textContent=players.filter(p=>p.alive).length;document.getElementById('blocks').textContent=blocksLeft;document.getElementById('coins').textContent=coins;document.getElementById('timer').textContent=String(Math.floor(roundSeconds/60)).padStart(2,'0')+':'+String(roundSeconds%60).padStart(2,'0');document.getElementById('status').textContent=phase==='build'?'FASE DE CONSTRUCCIÓN':phase==='attack'?'¡ATAQUE EN CURSO!':'RONDA COMPLETADA';document.getElementById('attack').disabled=phase!=='build'||!players[0].alive;document.getElementById('next').disabled=phase!=='done';}
 function draw(){
 ctx.clearRect(0,0,W,H);
 let palettes={valley:['#183c43','#102b37','#28634e'],lava:['#542b27','#241923','#9a4930'],ice:['#31536b','#142a43','#5c91a8']};
@@ -99,21 +102,65 @@ let hy=p.y+bh+10;ctx.fillStyle='#020915aa';ctx.fillRect(p.x,hy,bw,7);let hpgrad=
 });
 particles.forEach(a=>{ctx.globalAlpha=Math.max(0,a.life/24);let g=ctx.createRadialGradient(a.x,a.y,1,a.x,a.y,a.r);g.addColorStop(0,'#fff4c2');g.addColorStop(.35,'#ffbd61');g.addColorStop(1,'#ff572200');ctx.fillStyle=g;ctx.beginPath();ctx.arc(a.x,a.y,a.r,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1});
 shots.forEach(s=>{ctx.save();ctx.shadowColor='#ffbd61';ctx.shadowBlur=18;let g=ctx.createRadialGradient(s.x-2,s.y-2,1,s.x,s.y,s.r+3);g.addColorStop(0,'#fffbd1');g.addColorStop(.45,'#ffd06c');g.addColorStop(1,'#f16b32');ctx.fillStyle=g;ctx.beginPath();ctx.arc(s.x,s.y,s.r+2,0,Math.PI*2);ctx.fill();ctx.restore()});
+fallingRocks.forEach(r=>{ctx.save();ctx.shadowColor='#ffb36b';ctx.shadowBlur=22;let g=ctx.createRadialGradient(r.x-7,r.y-9,2,r.x,r.y,r.radius);g.addColorStop(0,'#e6d5bd');g.addColorStop(.45,'#817b75');g.addColorStop(1,'#35343a');ctx.fillStyle=g;ctx.beginPath();ctx.arc(r.x,r.y,r.radius,0,Math.PI*2);ctx.fill();ctx.restore();ctx.strokeStyle='#d8c5ad88';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(r.x-5,r.y-r.radius-18);ctx.lineTo(r.x-2,r.y-r.radius-5);ctx.moveTo(r.x+5,r.y-r.radius-16);ctx.lineTo(r.x+3,r.y-r.radius-4);ctx.stroke()});
+
 ctx.fillStyle='#eaf6ff99';ctx.font='10px system-ui';ctx.textAlign='left';ctx.fillText(mapTheme==='lava'?'SECTOR: CRÁTER VOLCÁNICO':mapTheme==='ice'?'SECTOR: PÁRAMO HELADO':'SECTOR: VALLE VERDE',14,20);
 }
 function hit(p){let x=Math.floor((Math.random()*p.w)),y=Math.floor((Math.random()*p.h)),m=p.grid[y][x];particles.push({x:p.x+x*cell+cell/2,y:p.y+y*cell+cell/2,r:13,life:24});if(m){let strength=mode==='bombard'?2:1;if(m==='wood'&&mode!=='classic'||m==='glass')strength=3;if(m==='metal')strength=0.3;if(Math.random()*3<strength){p.grid[y][x]=null;log(p.name+': un bloque fue destruido.')}else p.hp-=5}else{p.hp-=10;if(Math.random()>.55){p.dx=(Math.random()-.5)*35;p.dy=(Math.random()-.5)*35;p.px+=p.dx;p.py+=p.dy}}
 if(p.hp<=0||p.px<p.x-15||p.px>p.x+p.w*cell+15||p.py<p.y-15||p.py>p.y+p.h*cell+15){p.alive=false;log(p.name+' quedó eliminado.')}} 
-function doAttack(){if(phase!=='build')return;phase='attack';update();log('¡Comienza la ronda '+round+'!');let alive=players.filter(p=>p.alive);let count=mode==='bombard'?5:mode==='invasive'?3:2;for(let p of alive){for(let n=0;n<count;n++){hit(p);let targetX=p.x+Math.random()*p.w*cell,targetY=p.y+Math.random()*p.h*cell;shots.push({x:Math.random()*W,y:Math.random()*H,r:5});}}if(mode==='invasive'&&players[0].alive){let p=players[0],other=players.find(q=>q.id!==0&&q.alive);if(other){let x=Math.floor(Math.random()*5)+1,y=Math.floor(Math.random()*3)+1;p.grid[y][x]=other.grid[y][x]||p.grid[y][x];log('¡Modo invasivo! Las bases interactúan.')}}draw();update();setTimeout(()=>{shots=[];let survived=players[0].alive;coins+=survived?20+round*10:5;if(players.filter(p=>p.alive).length===1&&survived)coins+=100;particles=[];if(players.filter(p=>p.alive).length<=1||round===5){phase='done';let win=players.find(p=>p.alive);document.getElementById('resultTitle').textContent=win&&win.id===0?'¡VICTORIA!':'FIN DE LA PARTIDA';document.getElementById('resultText').textContent=win?(win.id===0?'Tu base resistió todos los ataques. ¡Sos el último en pie!':win.name+' fue el último en pie. ¡Probá otra estrategia!'):'Todas las bases fueron destruidas.';document.getElementById('result').classList.remove('hidden')}else phase='done';update();draw();},900)}
+function dropRock(){
+let alive=players.filter(p=>p.alive);if(!alive.length)return;
+let target=alive[Math.floor(Math.random()*alive.length)];
+let tx=target.x+cell*(1+Math.floor(Math.random()*5))+cell/2;
+fallingRocks.push({x:tx+(Math.random()-.5)*100,y:-35,vx:(Math.random()-.5)*1.2,vy:1.8,radius:15+Math.random()*5,targetId:target.id,landY:target.y+target.h*cell/2,done:false});
+rocksDropped++;log('¡Piedra '+rocksDropped+' de 3 cayendo!');
+}
+function resolveRock(r){
+let p=players.find(q=>q.id===r.targetId);if(!p||!p.alive)return;
+let gx=Math.max(0,Math.min(p.w-1,Math.floor((r.x-p.x)/cell))),gy=Math.max(0,Math.min(p.h-1,Math.floor((r.landY-p.y)/cell)));
+let m=p.grid[gy][gx];particles.push({x:r.x,y:r.landY,r:28,life:24});
+if(m){let durability={wood:1,glass:1,stone:3,metal:5}[m]||2;durability-=mode==='bombard'?1:0;if(durability<=2){p.grid[gy][gx]=null;log('¡Impacto! Una piedra rompió un bloque de '+p.name+'.')}else{p.hp-=12;log('La piedra golpeó la defensa de '+p.name+'.')}}
+else{p.hp-=25;p.dx+=(Math.random()-.5)*22;p.dy-=12;p.px+=p.dx;p.py+=p.dy;log('¡Impacto directo sobre '+p.name+'!')}
+for(let i=0;i<9;i++)particles.push({x:r.x+(Math.random()-.5)*32,y:r.landY+(Math.random()-.5)*24,r:4+Math.random()*7,life:18});
+if(p.hp<=0||p.px<p.x-15||p.px>p.x+p.w*cell+15||p.py<p.y-15||p.py>p.y+p.h*cell+15){p.alive=false;log(p.name+' quedó eliminado.')}
+}
+function finishRound(){
+clearInterval(roundClock);roundClock=null;fallingRocks=[];let survived=players[0].alive;coins+=survived?20+round*10:5;if(players.filter(p=>p.alive).length===1&&survived)coins+=100;
+if(players.filter(p=>p.alive).length<=1||round===5){phase='done';let win=players.find(p=>p.alive);document.getElementById('resultTitle').textContent=win&&win.id===0?'¡VICTORIA!':'FIN DE LA PARTIDA';document.getElementById('resultText').textContent=win?(win.id===0?'Tu base resistió las cinco rondas. ¡Sos el último en pie!':win.name+' fue el último en pie. ¡Probá otra estrategia!'):'Todas las bases fueron destruidas.';document.getElementById('result').classList.remove('hidden')}
+else{phase='done';log('Ronda terminada. Sobreviviste 60 segundos.')}
+update();draw();
+}
+function doAttack(){
+if(phase!=='build')return;phase='attack';roundSeconds=60;rocksDropped=0;fallingRocks=[];update();log('¡Ronda '+round+'! Resistí durante 60 segundos: caerán tres piedras.');
+dropRock();let dropTimer=setInterval(()=>{if(phase!=='attack'||rocksDropped>=3){clearInterval(dropTimer);return}dropRock()},20000);
+roundStart=Date.now();clearInterval(roundClock);
+roundClock=setInterval(()=>{
+if(phase!=='attack'){clearInterval(roundClock);return}
+roundSeconds=Math.max(0,60-Math.floor((Date.now()-roundStart)/1000));
+if(roundSeconds<=0){clearInterval(dropTimer);finishRound();return}
+update();
+},250);
+}
+function animatePhysics(now){
+let dt=Math.min(2,(now-lastFrame)/16.67||1);lastFrame=now;
+if(phase==='attack'){
+for(let i=fallingRocks.length-1;i>=0;i--){let r=fallingRocks[i];r.vy+=.22*dt;r.x+=r.vx*dt;r.y+=r.vy*dt;if(r.y>=r.landY){resolveRock(r);fallingRocks.splice(i,1);update()}}
+for(let p of players){if(p.alive){p.px+=p.dx*.025*dt;p.py+=p.dy*.025*dt;p.dx*=.97;p.dy*=.97}}
+draw();
+}
+animFrame=requestAnimationFrame(animatePhysics);
+}
+if(!animFrame)animFrame=requestAnimationFrame(animatePhysics);
 cv.addEventListener('click',e=>{if(phase!=='build'||!players[0].alive)return;let r=cv.getBoundingClientRect(),x=(e.clientX-r.left)*W/r.width,y=(e.clientY-r.top)*H/r.height,p=players[0],gx=Math.floor((x-p.x)/cell),gy=Math.floor((y-p.y)/cell);if(gx<0||gy<0||gx>=p.w||gy>=p.h)return;if(p.grid[gy][gx]){log('Esa casilla ya tiene un bloque.');return}if(blocksLeft<=0){log('No te quedan bloques.');return}if(gx===3&&gy===2){log('Dejá libre el espacio del personaje.');return}p.grid[gy][gx]=selected;blocksLeft--;update();draw()});
 document.querySelectorAll('[data-mat]').forEach(b=>b.onclick=()=>{selected=b.dataset.mat;document.querySelectorAll('[data-mat]').forEach(x=>x.classList.toggle('active',x===b))});
 document.getElementById('attack').onclick=doAttack;
-document.getElementById('next').onclick=()=>{if(phase!=='done')return;round++;blocksLeft=6;phase='build';players[0].hp=Math.min(100,players[0].hp+10);players.slice(1).forEach(botPrepare);log('Ronda '+round+': ganaste monedas y tenés 6 bloques nuevos. Los bots reforzaron sus bases.');update();draw()};
+document.getElementById('next').onclick=()=>{if(phase!=='done')return;round++;blocksLeft=6;roundSeconds=60;phase='build';players[0].hp=Math.min(100,players[0].hp+10);players.slice(1).forEach(botPrepare);log('Ronda '+round+': ganaste monedas y tenés 6 bloques nuevos. Los bots reforzaron sus bases.');update();draw()};
 document.getElementById('repair').onclick=()=>{if(phase!=='build')return;let p=players[0];p.hp=Math.min(100,p.hp+15);log('Reparaste parte de la base.');update();draw()};
 document.getElementById('clear').onclick=()=>{if(phase!=='build')return;let p=players[0];p.grid=Array.from({length:p.h},()=>Array(p.w).fill(null));for(let y=0;y<p.h;y++)for(let x=0;x<p.w;x++)if(x===0||y===0||x===p.w-1||y===p.h-1)p.grid[y][x]='stone';p.grid[2][3]=null;blocksLeft=12;update();draw();log('Diseño reiniciado.')};
 document.getElementById('mode').onchange=e=>{mode=e.target.value;log('Modo seleccionado: '+e.target.options[e.target.selectedIndex].text)};
 document.getElementById('map').onchange=e=>{mapTheme=e.target.value;let labels={valley:'Valle verde · terreno equilibrado',lava:'Cráter volcánico · zona de alto riesgo',ice:'Páramo helado · campo congelado'};document.getElementById('mapInfo').textContent=labels[mapTheme];draw();log('Mapa cambiado: '+labels[mapTheme])};
 document.querySelectorAll('[data-start]').forEach(b=>b.onclick=()=>{selectedStart=b.dataset.start;document.querySelectorAll('[data-start]').forEach(x=>x.classList.toggle('active',x===b));document.getElementById('mode').value=selectedStart});
 document.getElementById('play').onclick=()=>{mode=selectedStart;document.getElementById('mode').value=mode;document.getElementById('intro').classList.add('hidden');reset()};
-document.getElementById('again').onclick=()=>{document.getElementById('result').classList.add('hidden');reset()};
+document.getElementById('again').onclick=()=>{clearInterval(roundClock);document.getElementById('result').classList.add('hidden');reset()};
 reset();document.getElementById('intro').classList.remove('hidden');
 </script></body></html>
